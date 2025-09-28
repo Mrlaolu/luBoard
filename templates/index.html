@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>比赛榜单</title>
+    <style>
+        /* CSS样式写在这里 */
+        body {
+            font-family: sans-serif; /* 使用更现代的字体 */
+            padding: 20px;
+        }
+        h1 {
+            text-align: center; /* 标题居中 */
+        }
+        table {
+            width: 100%; /* 表格宽度占满整个容器 */
+            border-collapse: collapse; /* 合并边框，更好看 */
+            margin-top: 20px;
+            
+        }
+        th, td {
+            border: 1px solid #ccc; /* 单元格边框 */
+            padding: 10px; /* 单元格内边距 */
+            text-align: center; /* 文字居中 */
+        }
+        thead {
+            background-color: #f2f2f2; /* 表头背景色 */
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tbody tr:hover {
+            background-color: #6d6c6c;
+        }
+
+        /* 定义AC和WA的样式 */
+        .ac {
+            background-color: #d4edda; /* 淡绿色 */
+            color: #155724;
+            font-weight: bold;
+        }
+        .wa {
+            background-color: #f8d7da; /* 淡红色 */
+            color: #61171e;
+        }
+        .penalty-time {
+            color: #303030cc; /* 一种柔和的灰色 */
+            font-size: 0.8em; /* 字体再小一点 */
+        }
+    </style>
+
+</head>
+<body>
+    <h1>实时比赛榜单</h1>
+
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>排名 (Rank)</th>
+                <th>队伍 (Team)</th>
+                <th>解题数 (Solved)</th>
+                <th>罚时 (Penalty)</th>
+                {% for pid in problems %}
+                <th>{{ pid }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+            <tbody>
+                {% for team in board %}
+                <tr>
+                    <td>{{ team.rank }}</td>
+                    <!-- 给长队名加一个 title 属性，鼠标悬停时可以看全名 -->
+                    <td title="{{ team.team }}" style="text-align: left; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ team.team }}
+                    </td>
+                    <td>{{ team.solved }}</td>
+                    <td>{{ team.penalty }}</td>
+                    
+                    <!-- 题目状态部分不需要修改，因为它已经能正确处理字典了 -->
+                    {% for pid in problems %}
+                        {% set prob_info = team.status.get(pid) %} {# 获取题目的详细信息字典 #}
+                        
+                        {% if prob_info and '+' in prob_info.display %}
+                            {# 如果题目已AC #}
+                            <td class="ac">
+                                {{ prob_info.display }}
+                                <br>
+                                <small class="penalty-time">{{ prob_info.penalty }}</small>
+                            </td>
+                        {% elif prob_info and '-' in prob_info.display %}
+                            {# 如果题目 WA #}
+                            <td class="wa">
+                                {{ prob_info.display }}
+                            </td>
+                        {% else %}
+                            {# 如果题目未提交 #}
+                            <td></td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %} <!-- 5. 别忘了结束 for 循环 -->
+
+            </tbody>
+    </table>
+    
+</body>
+</html>
