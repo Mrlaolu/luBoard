@@ -8,6 +8,7 @@ def parse_contest_data(filepath='contest.dat'):
     problems = {}
     teams = {}
     submissions = []
+    submissions_per_problem = {}
 
     with open(filepath, 'r', encoding='utf-8') as f:
         for line in f:
@@ -47,6 +48,7 @@ def parse_contest_data(filepath='contest.dat'):
                     submissions.append({
                         'team_id': int(team_id), 'prob_id': prob_id, 'time': int(time), 'status': status
                     })
+                    submissions_per_problem[prob_id] = submissions_per_problem.get(prob_id, 0) + 1
 
     # --- 数据处理部分 ---
     submissions.sort(key=lambda x: x['time'])
@@ -65,7 +67,8 @@ def parse_contest_data(filepath='contest.dat'):
         if not prob_status['is_ac']:
             if sub['status'] in ('OK', 'AC'):
                 prob_status['is_ac'] = True
-                prob_status['solved_time'] = sub['time']
+                solved_time_in_minutes = sub['time'] // 60
+                prob_status['solved_time_min'] = solved_time_in_minutes
                 team['solved'] += 1
                 penalty_per_problem = problems[prob_id]['penalty_time']
                 problem_penalty = (sub['time'] // 60) + prob_status['attempts'] * penalty_per_problem
@@ -92,29 +95,33 @@ def parse_contest_data(filepath='contest.dat'):
         status_display = {}
         for p_id in sorted(problems.keys()):
             p_info = team['status'].get(p_id)
+            solved_time_val = 0
             display_text = ""
             penalty_val = 0
             
             if p_info:
                 if p_info['is_ac']:
                     display_text = '+' + (str(p_info['attempts']) if p_info['attempts'] > 0 else '')
+                    solved_time_val = p_info.get('solved_time_min', 0)
                     penalty_val = p_info.get('penalty', 0)
                 elif p_info['attempts'] > 0:
                     display_text = '-' + str(p_info['attempts'])
 
             status_display[p_id] = {
                 'display': display_text,
+                'solved_time': solved_time_val,
                 'penalty': penalty_val
             }
-            
+
         final_board.append({
+            'team_id': team['id'],  # <--- 【核心修改】把原始的、唯一的ID加进来！
             'rank': rank,
             'team': f"{team['school']} - {team['name']}" if team['school'] else team['name'],
             'solved': team['solved'],
             'penalty': team['penalty'],
             'status': status_display
         })
-        
+
     problem_ids = sorted(problems.keys())
 
-    return problem_ids, final_board
+    return problem_ids, final_board, submissions_per_problem

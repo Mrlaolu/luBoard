@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>后台控制面板</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
+        .container { max-width: 700px; margin: auto; }
+        form { background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        fieldset { border: none; padding: 0; margin: 0; }
+        legend { font-size: 1.5em; font-weight: bold; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        label { font-weight: bold; }
+        select, input[type="text"], button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #45a049; }
+        .nav-links { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- 表单1：更新已有队伍 -->
+        <form action="/update" method="post">
+            <fieldset>
+                <legend>手动更新提交</legend>
+                <div class="form-group">
+                    <label for="team_id">选择队伍:</label>
+                    <select name="team_id" id="team_id" required>
+                        {% for team in teams %}
+                        <option value="{{ team.team_id }}">{{ team.rank }}. {{ team.team }} (已解: {{ team.solved }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="problem_id">选择题目:</label>
+                    <select name="problem_id" id="problem_id" required>
+                        {% for pid in problems|sort %}
+                        <option value="{{ pid }}">{{ pid }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="result">提交结果:</label>
+                    <select name="result" id="result">
+                        <option value="AC">AC (通过)</option>
+                        <option value="WA">WA (错误)</option>
+                    </select>
+                </div>
+
+                <!-- 【核心修改】新增 AC 时间输入框 -->
+                <div class="form-group" id="ac-time-group">
+                    <label for="solved_time_min">AC 时间 (分钟):</label>
+                    <input type="number" name="solved_time_min" id="solved_time_min" value="180" min="0">
+                </div>
+
+                <button type="submit">提交更新</button>
+            </fieldset>
+        </form>
+
+        <!-- 【可选JS】增加一个小交互，只有选AC时才显示时间输入框 -->
+        <script>
+            const resultSelect = document.getElementById('result');
+            const acTimeGroup = document.getElementById('ac-time-group');
+
+            function toggleAcTimeInput() {
+                if (resultSelect.value === 'AC') {
+                    acTimeGroup.style.display = 'flex';
+                } else {
+                    acTimeGroup.style.display = 'none';
+                }
+            }
+            // 页面加载时执行一次
+            toggleAcTimeInput();
+            // 每次选择变化时执行
+            resultSelect.addEventListener('change', toggleAcTimeInput);
+        </script>
+
+        <!-- 表单2：添加新队伍 -->
+        <form action="/add_team" method="post">
+            <fieldset>
+                <legend>添加新队伍</legend>
+                <div class="form-group">
+                    <label for="team_name">新队名:</label>
+                    <input type="text" name="team_name" id="team_name" placeholder="例如：地表最强队" required>
+                </div>
+                <button type="submit">添加队伍</button>
+            </fieldset>
+        </form>
+
+        <div class="nav-links">
+            <a href="/" target="_blank">查看主榜单</a> | <a href="/reset">重置榜单</a>
+        </div>
+    </div>
+</body>
+</html>
