@@ -5,13 +5,21 @@
     <title>后台控制面板</title>
     <style>
         body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
-        .container { max-width: 700px; margin: auto; }
+        .container { max-width: 700px; margin: auto; padding: 0 15px; /* 添加左右内边距以防贴边 */ }
         form { background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
         fieldset { border: none; padding: 0; margin: 0; }
         legend { font-size: 1.5em; font-weight: bold; margin-bottom: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         label { font-weight: bold; }
-        select, input[type="text"], button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        /* 【核心修改】调整表单元素的样式 */
+        select, input[type="text"], input[type="number"], button { 
+            padding: 10px; 
+            font-size: 16px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            width: 100%; /* 宽度占满容器 */
+            box-sizing: border-box; /* 内边距和边框包含在宽度内 */
+        }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; transition: background-color 0.3s; }
         button:hover { background-color: #45a049; }
         .nav-links { margin-top: 20px; }
@@ -19,7 +27,6 @@
 </head>
 <body>
     <div class="container">
-
         <!-- 表单1：更新已有队伍 -->
         <form action="/update" method="post">
             <fieldset>
@@ -28,7 +35,9 @@
                     <label for="team_id">选择队伍:</label>
                     <select name="team_id" id="team_id" required>
                         {% for team in teams %}
-                        <option value="{{ team.team_id }}">{{ team.rank }}. {{ team.team }} (已解: {{ team.solved }})</option>
+                        <option value="{{ team.team_id }}" {% if team.team_id == selected_team_id %}selected{% endif %}>
+                            {{ team.rank }}. {{ team.team }} (已解: {{ team.solved }})
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -50,7 +59,6 @@
                     </select>
                 </div>
 
-                <!-- 【核心修改】新增 AC 时间输入框 -->
                 <div class="form-group" id="ac-time-group">
                     <label for="solved_time_min">AC 时间 (分钟):</label>
                     <input type="number" name="solved_time_min" id="solved_time_min" value="180" min="0">
@@ -60,11 +68,10 @@
             </fieldset>
         </form>
 
-        <!-- 【可选JS】增加一个小交互，只有选AC时才显示时间输入框 -->
+        <!-- JS 逻辑保持不变 -->
         <script>
             const resultSelect = document.getElementById('result');
             const acTimeGroup = document.getElementById('ac-time-group');
-
             function toggleAcTimeInput() {
                 if (resultSelect.value === 'AC') {
                     acTimeGroup.style.display = 'flex';
@@ -72,9 +79,7 @@
                     acTimeGroup.style.display = 'none';
                 }
             }
-            // 页面加载时执行一次
             toggleAcTimeInput();
-            // 每次选择变化时执行
             resultSelect.addEventListener('change', toggleAcTimeInput);
         </script>
 
@@ -91,7 +96,7 @@
         </form>
 
         <div class="nav-links">
-            <a href="/" target="_blank">查看主榜单</a> | <a href="/reset">重置榜单</a>
+            <a href="/" target="_blank">查看主榜单</a>
         </div>
     </div>
 </body>

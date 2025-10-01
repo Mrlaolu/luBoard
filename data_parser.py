@@ -4,17 +4,16 @@ import re
 
 def calculate_final_board_state(teams, problems, submissions):
     """
-    【新增的可重用函数】根据当前的队伍、题目和提交列表，计算最终的榜单状态。
+    【重构版】根据当前的队伍、题目和提交列表，计算最终的榜单状态。
+    所有时间相关的字段（如 solved_time, effective_last_sub_time）都以“秒”为单位。
     """
     submissions.sort(key=lambda x: x['time'])
 
-    # --- 阶段二(A)：预计算“原始总尝试次数” ---
     total_attempts_map = {}
     for sub in submissions:
         key = (sub['team_id'], sub['prob_id'])
         total_attempts_map[key] = total_attempts_map.get(key, 0) + 1
 
-    # --- 阶段二(B)：计算“有效解题状态” (AC后锁定) ---
     final_statuses = {}
     for sub in submissions:
         team_id, prob_id = sub['team_id'], sub['prob_id']
@@ -31,17 +30,19 @@ def calculate_final_board_state(teams, problems, submissions):
         status = final_statuses[team_prob_key]
         
         if not status['is_ac']:
-            status['effective_last_sub_time'] = sub['time'] // 60
+            # 【功能修改】记录最后提交时间，单位为秒
+            status['effective_last_sub_time'] = sub['time']
             if sub['status'] in ('OK', 'AC'):
                 status['is_ac'] = True
-                solved_time_min = sub['time'] // 60
-                status['solved_time'] = solved_time_min
+                # 【功能修改】记录AC时间，单位为秒
+                status['solved_time'] = sub['time']
                 penalty_per_wa = problems[prob_id]['penalty_time']
+                # 【功能修改】罚时计算基于分钟，所以这里要进行转换
+                solved_time_min = sub['time'] // 60
                 status['penalty'] = solved_time_min + status['attempts_before_ac'] * penalty_per_wa
             else:
                 status['attempts_before_ac'] += 1
 
-    # --- 阶段三：构建并返回干净的“初始榜单”模板 ---
     initial_board = []
     problem_ids = sorted(problems.keys())
     for team_id, team_info in teams.items():
@@ -55,6 +56,7 @@ def calculate_final_board_state(teams, problems, submissions):
             team_status[p_id] = {
                 'display': '', 'solved_time': 0, 'penalty': 0, 'last_submission_time': -1,
                 'final_is_ac': final_status['is_ac'],
+                # 【功能修改】所有 'final_' 时间字段现在都以秒为单位
                 'final_solved_time': final_status['solved_time'],
                 'final_penalty': final_status['penalty'],
                 'final_attempts_to_ac': final_status['attempts_before_ac'] + 1 if final_status['is_ac'] else final_status['attempts_before_ac'],
@@ -80,7 +82,6 @@ def parse_contest_data(filepath='contest.dat'):
 
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            # ... (文件读取部分无变化) ...
             for line in f:
                 line = line.strip()
                 if not line: continue
@@ -107,8 +108,6 @@ def parse_contest_data(filepath='contest.dat'):
     except FileNotFoundError:
         return [], [], [], {}, {}
 
-    # 调用新的核心函数来完成计算
     problem_ids, initial_board = calculate_final_board_state(teams, problems, submissions)
     
-    # 返回所有需要的数据
     return problem_ids, initial_board, submissions, problems, teams
