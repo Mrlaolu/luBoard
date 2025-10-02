@@ -26,6 +26,8 @@ pip install flask
 
 #运行使用软件
 flask run
+
+#如没有更改链接和端口，浏览器访问localhost:5000就能看到榜单了
 ```
 
 
