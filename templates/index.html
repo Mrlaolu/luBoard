@@ -4,33 +4,39 @@
     <meta charset="UTF-8">
     <title>比赛回放</title>
     <style>
+        /* --- 基本样式 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             padding: 20px;
-            padding-bottom: 100px; 
+            padding-bottom: 100px; /* 为底部固定控件留出空间 */
             padding-top: 20px;
             background-color: #f9f9f9;
         }
         h1 { text-align: center; color: #333; }
+        
+        /* --- 表格样式 --- */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        thead { position: sticky; top: 0; z-index: 10; }
+        thead { position: sticky; top: 0; z-index: 10; } /* 表头在滚动时固定 */
         th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: center; white-space: nowrap; }
         thead th { background-color: #4CAF50; color: white; font-size: 16px; }
         tbody tr:nth-child(even) { background-color: #f2f2f2; }
-        .ac { background-color: #d4edda !important; color: #155724; font-weight: bold; }
-        .wa { background-color: #f8d7da !important; color: #721c24; }
-        .pending { background-color: #d1ecf1 !important; color: #0c5460; font-weight: bold; }
+        
+        /* --- 提交状态样式 --- */
+        .ac { background-color: #d4edda !important; color: #155724; font-weight: bold; } /* Accepted */
+        .wa { background-color: #f8d7da !important; color: #721c24; } /* Wrong Answer */
+        .pending { background-color: #d1ecf1 !important; color: #0c5460; font-weight: bold; } /* 封榜后提交 */
         .solved-time { color: #6c757d; font-size: 0.8em; }
 
+        /* --- 底部控制条容器 --- */
         .controls {
-            position: fixed;
+            position: fixed; /* 固定在视窗底部 */
             bottom: 0;
             left: 0;
             width: 100%;
             background-color: #333;
             color: white;
             padding: 15px 20px;
-            display: flex;
+            display: flex; /* 使用 Flexbox 布局 */
             align-items: center;
             gap: 15px;
             box-sizing: border-box;
@@ -38,45 +44,36 @@
             z-index: 100;
         }
         
+        /* --- 控制条内部元素布局 --- */
+        .controls input[type="range"] {
+            flex-grow: 1; /* 进度条是唯一允许伸展的元素 */
+        }
+        .controls > button, 
+        .controls > input[type="text"], 
+        .controls > span, 
+        .controls > .scheduler-group {
+            flex-shrink: 0; /* 其他元素保持其自然宽度，不被压缩 */
+        }
+        
+        /* --- 定时器模块样式 --- */
         .scheduler-group {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-left: auto;
         }
         .scheduler-group label { font-weight: bold; font-size: 0.9em; }
         .scheduler-group input[type="datetime-local"] {
             background-color: #555; color: white; border: 1px solid #777; border-radius: 4px; padding: 5px;
         }
-        .scheduler-group input:disabled { background-color: #444; color: #888; cursor: not-allowed; }
         #timer-status { font-family: 'Courier New', Courier, monospace; font-size: 0.9em; min-width: 150px; }
-        /* 【样式改进】为禁用的播放控件添加更明确的视觉提示 */
+        
+        /* --- 控件禁用状态样式 --- */
         .controls button:disabled, .controls input:disabled {
             cursor: not-allowed;
             opacity: 0.5;
         }
-
-                /* 1. 进度条是唯一允许生长的元素 */
-        .controls input[type="range"] {
-            flex-grow: 1;
-        }
         
-        /* 2. 其他所有直接子元素都保持其自然宽度，并且不允许被压缩 */
-        .controls > button, 
-        .controls > input[type="text"], 
-        .controls > span, 
-        .controls > .scheduler-group {
-            flex-shrink: 0;
-        }
-
-        /* 3. 定时器组不再使用 margin-left: auto */
-        .scheduler-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            /* 移除 margin-left: auto */
-        }
-        
+        /* --- 时间输入和显示样式 --- */
         .controls input[type="text"] {
             width: 110px;
             padding: 8px;
@@ -90,6 +87,7 @@
         }
         .time-display { font-size: 1.5em; font-weight: bold; min-width: 120px; text-align: center; font-family: 'Courier New', Courier, monospace; }
         
+        /* --- 其他UI元素 --- */
         #frozen-banner {
             display: none; position: fixed; top: 15px; right: 10px;
             background-color: #17a2b8; color: white; padding: 10px 20px; border-radius: 5px;
@@ -104,14 +102,18 @@
 </head>
 <body>
     <h1>比赛回放</h1>
+    <!-- 链接到后台管理页面 -->
     <a href="/update" target="_blank" class="admin-link">后台控制面板</a>
+    <!-- 封榜提示横幅 -->
     <div id="frozen-banner">榜单已封！</div>
 
+    <!-- 主榜单表格 -->
     <table>
         <thead id="board-header"></thead>
         <tbody id="board-body"></tbody>
     </table>
 
+    <!-- 题目统计信息区域 -->
     <div class="stats-container">
         <h2>题目统计</h2>
         <table class="stats-table">
@@ -120,12 +122,14 @@
         </table>
     </div>
 
+    <!-- 底部固定的播放控制条 -->
     <div class="controls">
         <button id="play-pause-btn">▶</button>
         <input type="text" id="manual-time-input" placeholder="00:00:00">
         <input type="range" id="time-slider" min="0" max="18000" value="0">
         <span id="total-time-display" class="time-display">05:00:00</span>
         
+        <!-- 定时启动功能模块 -->
         <div class="scheduler-group">
             <label for="timer-toggle">定时启动:</label>
             <input type="checkbox" id="timer-toggle" style="transform: scale(1.5);">
@@ -133,11 +137,12 @@
             <span id="timer-status"></span>
         </div>
 
+        <!-- 解榜按钮 -->
         <button id="unfreeze-btn" style="display: none;">解榜</button>
     </div>
 
     <script>
-        // DOM Elements
+        // --- DOM 元素获取 ---
         const boardHeader = document.getElementById('board-header');
         const boardBody = document.getElementById('board-body');
         const statsHeader = document.getElementById('stats-header');
@@ -152,34 +157,47 @@
         const startTimeInput = document.getElementById('start-time-input');
         const timerStatus = document.getElementById('timer-status');
 
-        // State Variables
-        let problems = [];
-        let totalDurationSec = 300 * 60;
-        let currentSecond = 0;
-        let isPlaying = false;
-        let playbackSpeed = 1000;
-        let playbackInterval;
-        const FROZEN_BOARD_SECOND = 240 * 60;
-        let isUnfrozen = false;
-        let timerCheckInterval;
+        // --- 全局状态变量 ---
+        let problems = []; // 题目列表
+        let totalDurationSec = 300 * 60; // 比赛总时长（秒）
+        let currentSecond = 0; // 当前播放的秒数
+        let isPlaying = false; // 是否正在播放
+        let playbackSpeed = 1000; // 播放速度（毫秒/秒），1000为正常速度
+        let playbackInterval; // 播放定时器
+        const FROZEN_BOARD_SECOND = 240 * 60; // 封榜时间点（秒）
+        let isUnfrozen = false; // 是否已解榜
+        let timerCheckInterval; // 定时启动检查器
 
-        // --- Functions (updateBoardForTime and dependent render functions remain unchanged) ---
-        function formatTime(totalSeconds) { /* ... no changes ... */ 
+        // --- 核心功能函数 ---
+
+        /**
+         * 将总秒数格式化为 HH:MM:SS 格式的字符串。
+         * @param {number} totalSeconds - 总秒数。
+         * @returns {string} 格式化后的时间字符串。
+         */
+        function formatTime(totalSeconds) { 
             const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
             const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
             const s = String(totalSeconds % 60).padStart(2, '0');
             return `${h}:${m}:${s}`;
         }
-        async function updateBoardForTime(seconds) { /* ... no changes ... */ 
+        
+        /**
+         * 根据指定的秒数，从后端获取并更新榜单和统计数据。
+         * @param {number} seconds - 要更新到的比赛时间点（秒）。
+         */
+        async function updateBoardForTime(seconds) { 
             currentSecond = Math.max(0, Math.min(seconds, totalDurationSec));
             timeSlider.value = currentSecond;
             manualTimeInput.value = formatTime(currentSecond);
 
             let displaySeconds = currentSecond;
+            // 如果未解榜且已进入封榜时间，则请求封榜时刻的数据
             if (!isUnfrozen && currentSecond >= FROZEN_BOARD_SECOND) {
                 displaySeconds = FROZEN_BOARD_SECOND;
             }
 
+            // 控制封榜横幅和解榜按钮的显示
             const showFrozenBanner = !isUnfrozen && currentSecond >= FROZEN_BOARD_SECOND;
             frozenBanner.style.display = showFrozenBanner ? 'block' : 'none';
             unfreezeBtn.style.display = (currentSecond === totalDurationSec) ? 'block' : 'none';
@@ -187,18 +205,25 @@
             try {
                 const response = await fetch(`/api/board_at_time/${displaySeconds}`);
                 const data = await response.json();
-                renderBoard(data.board, currentSecond);
+                renderBoard(data.board, currentSecond); // 传入真实秒数以处理pending状态
                 renderStatistics(data.statistics);
             } catch (error) {
                 console.error("更新榜单失败:", error);
             }
         }
-        function renderBoard(boardData, realSeconds) { /* ... no changes ... */ 
+        
+        /**
+         * 渲染榜单表格。
+         * @param {Array} boardData - 从API获取的榜单数据。
+         * @param {number} realSeconds - 当前真实的比赛秒数，用于判断'pending'状态。
+         */
+        function renderBoard(boardData, realSeconds) {
             let bodyHTML = '';
             boardData.forEach(team => {
                 bodyHTML += `<tr><td>${team.rank}</td><td title="${team.team}" style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">${team.team}</td><td>${team.solved}</td><td>${team.penalty}</td>`;
                 problems.forEach(pid => {
                     const probInfo = team.status[pid];
+                    // 判断是否应显示为 "Pending" 状态
                     const shouldShowPending = 
                         !isUnfrozen && 
                         realSeconds > FROZEN_BOARD_SECOND && 
@@ -221,7 +246,12 @@
             });
             boardBody.innerHTML = bodyHTML;
         }
-        function renderStatistics(stats) { /* ... no changes ... */ 
+        
+        /**
+         * 渲染题目统计表格。
+         * @param {Object} stats - 从API获取的统计数据。
+         */
+        function renderStatistics(stats) {
              if (stats && Object.keys(stats).length > 0) {
                 let statsHeaderHTML = '<tr><th>Statistic</th>';
                 problems.forEach(pid => statsHeaderHTML += `<th>${pid}</th>`);
@@ -242,18 +272,18 @@
                 statsBody.innerHTML = statsBodyHTML;
             }
         }
-        function togglePlayback() { /* ... no changes ... */ 
+        
+        /** 切换播放/暂停状态。 */
+        function togglePlayback() {
             isPlaying = !isPlaying;
             if (isPlaying) {
-                if (currentSecond >= totalDurationSec) {
-                    currentSecond = 0;
-                }
+                if (currentSecond >= totalDurationSec) currentSecond = 0; // 如果已结束，从头开始
                 playPauseBtn.textContent = '❚❚';
                 playbackInterval = setInterval(() => {
                     if (currentSecond < totalDurationSec) {
                         updateBoardForTime(currentSecond + 1);
                     } else {
-                        togglePlayback();
+                        togglePlayback(); // 播放结束时自动暂停
                     }
                 }, playbackSpeed);
             } else {
@@ -261,34 +291,42 @@
                 clearInterval(playbackInterval);
             }
         }
-        function unfreezeBoard() { /* ... no changes ... */ 
+        
+        /** 执行解榜操作。 */
+        function unfreezeBoard() {
             isUnfrozen = true;
             unfreezeBtn.style.display = 'none';
-            updateBoardForTime(totalDurationSec);
+            updateBoardForTime(totalDurationSec); // 直接跳转到比赛结束时刻
         }
-        function parseTimeInput(timeStr) { /* ... no changes ... */ 
+        
+        /**
+         * 解析手动输入的时间字符串 (HH:MM:SS, MM:SS, SSS) 为秒数。
+         * @param {string} timeStr - 时间字符串。
+         * @returns {number} 解析出的总秒数，无效则返回-1。
+         */
+        function parseTimeInput(timeStr) {
             const parts = timeStr.split(':').map(Number);
             let seconds = 0;
-            if (parts.length === 3) {
-                seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-            } else if (parts.length === 2) {
-                seconds = parts[0] * 60 + parts[1];
-            } else if (parts.length === 1) {
-                seconds = parts[0];
-            }
+            if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
+            else if (parts.length === 1) seconds = parts[0];
             return isNaN(seconds) ? -1 : seconds;
         }
 
-        // --- 【逻辑修正】核心控制函数 ---
+        /**
+         * 根据是否启用定时器模式，设置手动播放控件的可用状态。
+         * @param {boolean} isTimerActive - 定时器是否激活。
+         */
         function setControlsForTimerMode(isTimerActive) {
-            // 播放控件与定时器模式状态相反
             playPauseBtn.disabled = isTimerActive;
             timeSlider.disabled = isTimerActive;
             manualTimeInput.disabled = isTimerActive;
             unfreezeBtn.disabled = isTimerActive;
-
         }
 
+        /**
+         * 检查定时器状态，用于倒计时或触发播放。
+         */
         function checkTimer() {
             const startTimeStr = localStorage.getItem('scheduledStartTime');
             if (!startTimeStr) {
@@ -303,24 +341,26 @@
             if (diffSeconds >= 0) { // 时间到或已过
                 clearInterval(timerCheckInterval);
                 timerStatus.textContent = '已启动！';
-
-                // 【逻辑修正】保持播放控件禁用，这是关键！
+                
+                // 确保手动控件保持禁用
                 // setControlsForTimerMode(true); 
 
-                // 计算进度并开始播放
+                // 计算当前进度并开始自动播放
                 updateBoardForTime(diffSeconds);
                 if (diffSeconds < totalDurationSec && !isPlaying) {
                     togglePlayback();
                 }
-
-            } else { // 还没到时间
+            } else { // 尚未到时间，显示倒计时
                 timerStatus.textContent = `倒计时: ${formatTime(Math.abs(diffSeconds))}`;
             }
         }
 
-        // --- Initialization ---
+        /**
+         * 页面初始化函数。
+         */
         async function initialize() {
             try {
+                // 获取比赛基础信息
                 const response = await fetch('/api/initial_data');
                 const data = await response.json();
                 problems = data.problems;
@@ -328,26 +368,26 @@
                 timeSlider.max = totalDurationSec;
                 totalTimeDisplay.textContent = formatTime(totalDurationSec);
 
+                // 构建榜单表头
                 let headerHTML = '<tr><th>排名</th><th>队伍</th><th>解题数</th><th>罚时</th>';
                 problems.forEach(pid => headerHTML += `<th>${pid}</th>`);
                 headerHTML += '</tr>';
                 boardHeader.innerHTML = headerHTML;
 
+                // 加载初始榜单（0秒时）
                 await updateBoardForTime(0);
 
-                // 【逻辑修正】初始化时根据存储状态设置所有控件
+                // 根据本地存储恢复定时器状态
                 const timerEnabled = localStorage.getItem('timerEnabled') === 'true';
                 timerToggle.checked = timerEnabled;
-                setControlsForTimerMode(timerEnabled); // 根据是否为定时模式，设置所有控件的初始状态
+                setControlsForTimerMode(timerEnabled);
 
                 const savedTime = localStorage.getItem('scheduledStartTime');
-                if (savedTime) {
-                    startTimeInput.value = savedTime;
-                }
+                if (savedTime) startTimeInput.value = savedTime;
                 
                 if (timerEnabled) {
                     timerCheckInterval = setInterval(checkTimer, 1000);
-                    checkTimer(); // 立即执行一次，处理页面加载时就已过期的定时器
+                    checkTimer(); // 立即检查一次
                 }
 
             } catch (error) {
@@ -355,10 +395,10 @@
             }
         }
 
-        // --- Event Listeners ---
+        // --- 事件监听器绑定 ---
         playPauseBtn.addEventListener('click', togglePlayback);
         timeSlider.addEventListener('input', (e) => {
-            if (isPlaying) togglePlayback();
+            if (isPlaying) togglePlayback(); // 拖动时暂停播放
             updateBoardForTime(parseInt(e.target.value));
         });
         unfreezeBtn.addEventListener('click', unfreezeBoard);
@@ -370,21 +410,19 @@
                 updateBoardForTime(seconds);
             } else {
                 alert('输入的时间格式无效或超出范围！');
-                e.target.value = formatTime(currentSecond);
+                e.target.value = formatTime(currentSecond); // 恢复为当前有效时间
             }
         });
 
-        // 【逻辑修正】定时器开关事件处理
         timerToggle.addEventListener('change', () => {
             const enabled = timerToggle.checked;
             localStorage.setItem('timerEnabled', enabled);
-            setControlsForTimerMode(enabled); // 切换时立即更新所有相关控件的状态
+            setControlsForTimerMode(enabled);
 
             if (enabled) {
-                // 如果是手动播放中，先暂停
-                if (isPlaying) togglePlayback();
+                if (isPlaying) togglePlayback(); // 启用定时器时暂停手动播放
                 
-                // 自动设置一个默认启动时间
+                // 如果没有设置时间，则自动设为1分钟后
                 if (!startTimeInput.value) {
                     const now = new Date();
                     now.setMinutes(now.getMinutes() + 1);
@@ -402,22 +440,21 @@
                 timerStatus.textContent = '';
                 localStorage.removeItem('timerEnabled');
                 localStorage.removeItem('scheduledStartTime');
-
-                // 【逻辑修正】如果之前是自动播放，现在要停下来
-                if (isPlaying) togglePlayback();
+                if (isPlaying) togglePlayback(); // 如果之前是自动播放，则停下来
             }
         });
         
         startTimeInput.addEventListener('change', () => {
             localStorage.setItem('scheduledStartTime', startTimeInput.value);
             if (timerToggle.checked) {
-                // 重置并重新开始倒计时
+                // 如果时间被修改，重置定时器检查
                 clearInterval(timerCheckInterval);
                 timerCheckInterval = setInterval(checkTimer, 1000);
-                checkTimer(); // 立即更新倒计时显示
+                checkTimer();
             }
         });
 
+        // 页面加载完成后执行初始化
         document.addEventListener('DOMContentLoaded', initialize);
     </script>
 </body>

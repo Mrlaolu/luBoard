@@ -4,36 +4,43 @@
     <meta charset="UTF-8">
     <title>后台控制面板</title>
     <style>
+        /* --- 基本页面和容器样式 --- */
         body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f4f4f9; }
-        .container { max-width: 700px; margin: auto; padding: 0 15px; /* 添加左右内边距以防贴边 */ }
+        .container { max-width: 700px; margin: auto; padding: 0 15px; }
+        
+        /* --- 表单样式 --- */
         form { background: white; border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
         fieldset { border: none; padding: 0; margin: 0; }
         legend { font-size: 1.5em; font-weight: bold; margin-bottom: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
         label { font-weight: bold; }
-        /* 【核心修改】调整表单元素的样式 */
+        
+        /* --- 表单控件统一样式 --- */
         select, input[type="text"], input[type="number"], button { 
             padding: 10px; 
             font-size: 16px; 
             border: 1px solid #ccc; 
             border-radius: 4px; 
             width: 100%; /* 宽度占满容器 */
-            box-sizing: border-box; /* 内边距和边框包含在宽度内 */
+            box-sizing: border-box; /* 使 padding 和 border 不会增加元素的总宽度 */
         }
         button { background-color: #4CAF50; color: white; border: none; cursor: pointer; transition: background-color 0.3s; }
         button:hover { background-color: #45a049; }
+        
+        /* --- 导航链接样式 --- */
         .nav-links { margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 表单1：更新已有队伍 -->
+        <!-- 表单1：更新已有队伍的提交记录 -->
         <form action="/update" method="post">
             <fieldset>
                 <legend>手动更新提交</legend>
                 <div class="form-group">
                     <label for="team_id">选择队伍:</label>
                     <select name="team_id" id="team_id" required>
+                        <!-- 动态填充队伍列表 -->
                         {% for team in teams %}
                         <option value="{{ team.team_id }}" {% if team.team_id == selected_team_id %}selected{% endif %}>
                             {{ team.rank }}. {{ team.team }} (已解: {{ team.solved }})
@@ -45,6 +52,7 @@
                 <div class="form-group">
                     <label for="problem_id">选择题目:</label>
                     <select name="problem_id" id="problem_id" required>
+                        <!-- 动态填充题目列表 -->
                         {% for pid in problems|sort %}
                         <option value="{{ pid }}">{{ pid }}</option>
                         {% endfor %}
@@ -59,6 +67,7 @@
                     </select>
                 </div>
 
+                <!-- 仅当结果为 AC 时显示此输入框 -->
                 <div class="form-group" id="ac-time-group">
                     <label for="solved_time_min">AC 时间 (分钟):</label>
                     <input type="number" name="solved_time_min" id="solved_time_min" value="180" min="0">
@@ -68,18 +77,23 @@
             </fieldset>
         </form>
 
-        <!-- JS 逻辑保持不变 -->
+        <!-- JavaScript 逻辑 -->
         <script>
             const resultSelect = document.getElementById('result');
             const acTimeGroup = document.getElementById('ac-time-group');
+            /**
+             * 根据提交结果下拉框的值，切换AC时间输入框的显示/隐藏。
+             */
             function toggleAcTimeInput() {
                 if (resultSelect.value === 'AC') {
-                    acTimeGroup.style.display = 'flex';
+                    acTimeGroup.style.display = 'flex'; // 显示
                 } else {
-                    acTimeGroup.style.display = 'none';
+                    acTimeGroup.style.display = 'none'; // 隐藏
                 }
             }
+            // 页面加载时执行一次，以保证初始状态正确
             toggleAcTimeInput();
+            // 当选择变化时，再次调用
             resultSelect.addEventListener('change', toggleAcTimeInput);
         </script>
 
@@ -95,6 +109,7 @@
             </fieldset>
         </form>
 
+        <!-- 导航链接 -->
         <div class="nav-links">
             <a href="/" target="_blank">查看主榜单</a>
         </div>
